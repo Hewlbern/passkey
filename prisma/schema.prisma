@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["referentialIntegrity"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL")
+  relationMode = "prisma"
+}
+
+model User {
+  id         String      @id @default(cuid())
+  email      String      @unique
+  name       String?
+  passkeys   Passkey[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Passkey {
+  id              String    @id @default(cuid())
+  credentialId    String    @unique // Base64 encoded credential ID
+  publicKey       String    // Base64 encoded public key
+  counter         BigInt    // Sign count for security
+  transports      String[]  // Allowed transports
+  userId          String    
+  user            User      @relation(fields: [userId], references: [id])
+  createdAt       DateTime  @default(now())
+  lastUsed        DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model AllowedDomain {
+  id        String   @id @default(cuid())
+  domain    String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiClient {
+  id          String       @id @default(cuid())
+  name        String
+  secretKey   String       @unique
+  domains     String[]
+  clientKeys  ClientKey[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model ClientKey {
+  id          String     @id @default(cuid())
+  key         String     @unique
+  domain      String
+  expiresAt   DateTime
+  apiClient   ApiClient  @relation(fields: [apiClientId], references: [id])
+  apiClientId String
+  createdAt   DateTime   @default(now())
+
+  @@index([apiClientId])
+}
